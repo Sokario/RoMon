@@ -1,0 +1,252 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include "quitdialog.h"
+#include "subwindow.h"
+
+#include "iostream"
+#include "string"
+
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    comBaudRate = QSerialPort::Baud9600;
+    comBreakEnable = true;
+    comDataBits = QSerialPort::Data8;
+    comDataTermReady = false;
+    comFlowControl = QSerialPort::NoFlowControl;
+    comParity = QSerialPort::NoParity;
+    comPortName = "None";
+    comPort = QSerialPortInfo(comPortName);
+    comReadBufferSize = 0;
+    comRequestToSend = false;
+    comStopBit = QSerialPort::OneStop;
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::clearCheckedPort()
+{
+    QList<QAction *> list = ui->menuPort_Com->actions();
+    for (int i = 0; i < list.size(); i++) {
+//        ui->textEdit_2->append(list[i]->objectName());
+        list[i]->setChecked(false);
+    }
+}
+
+void MainWindow::clearCheckedMenu(QMenu *menu)
+{
+    QList<QAction *> list = menu->actions();
+    for (int i = 0; i < list.size(); i++) {
+//        ui->textEdit_2->append(list[i]->objectName());
+        list[i]->setChecked(false);
+    }
+}
+
+void MainWindow::on_actionQuit_triggered()
+{
+    Quitdialog qDialog;
+    qDialog.setModal(true);
+    qDialog.exec();
+    if (qDialog.result() == 1) {
+        QApplication::quit();
+    }
+}
+
+void MainWindow::on_actionRefresh_triggered()
+{
+    ui->textEdit->append("Communication ports listing!");
+    for(int i = 0; i < actions.size(); i++) {
+        ui->menuPort_Com->removeAction(actions[i]);
+    }
+    actions.clear();
+    QList<QSerialPortInfo> port_com = QSerialPortInfo::availablePorts();
+
+    QAction *action = new QAction("NO PORT");
+    action->setCheckable(true);
+    action->setChecked(true);
+    actions.append(action);
+    if (port_com.size() == 0) {
+        ui->textEdit->append("No communication port detected!");
+        ui->menuPort_Com->addActions(actions);
+    } else {
+        ui->textEdit->append("Ports detected!");
+        for(int i = 0; i < port_com.size(); i++) {
+            ui->textEdit->append(port_com[i].portName());
+            QAction *action = new QAction(port_com[i].portName());
+            action->setCheckable(true);
+            connect(action, SIGNAL(triggered(bool)), this, SLOT(clearCheckedPort()));
+            actions.append(action);
+        }
+        ui->menuPort_Com->addActions(actions);
+    }
+}
+
+void MainWindow::on_actionNew_triggered()
+{
+
+}
+
+void MainWindow::on_action1200_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud1200;
+    ui->action1200->setChecked(true);
+}
+
+void MainWindow::on_action2400_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud2400;
+    ui->action2400->setChecked(true);
+}
+
+void MainWindow::on_action4800_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud4800;
+    ui->action4800->setChecked(true);
+}
+
+void MainWindow::on_action9600_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud9600;
+    ui->action9600->setChecked(true);
+}
+
+void MainWindow::on_action19200_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud19200;
+    ui->action19200->setChecked(true);
+}
+
+void MainWindow::on_action38400_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud38400;
+    ui->action38400->setChecked(true);
+}
+
+void MainWindow::on_action57600_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud57600;
+    ui->action57600->setChecked(true);
+}
+
+void MainWindow::on_action115200_triggered()
+{
+    clearCheckedMenu(ui->menuBaudrate);
+    comBaudRate = QSerialPort::Baud115200;
+    ui->action115200->setChecked(true);
+}
+
+void MainWindow::on_action5_triggered()
+{
+    clearCheckedMenu(ui->menuData_Bits);
+    comDataBits = QSerialPort::Data5;
+    ui->action5->setChecked(true);
+}
+
+void MainWindow::on_action6_triggered()
+{
+    clearCheckedMenu(ui->menuData_Bits);
+    comDataBits = QSerialPort::Data6;
+    ui->action6->setChecked(true);
+}
+
+void MainWindow::on_action7_triggered()
+{
+    clearCheckedMenu(ui->menuData_Bits);
+    comDataBits = QSerialPort::Data7;
+    ui->action7->setChecked(true);
+}
+
+void MainWindow::on_action8_triggered()
+{
+    clearCheckedMenu(ui->menuData_Bits);
+    comDataBits = QSerialPort::Data8;
+    ui->action8->setChecked(true);
+}
+
+void MainWindow::on_actionnone_triggered()
+{
+    clearCheckedMenu(ui->menuParity);
+    comParity = QSerialPort::NoParity;
+    ui->actionnone->setChecked(true);
+}
+
+void MainWindow::on_actioneven_triggered()
+{
+    clearCheckedMenu(ui->menuParity);
+    comParity = QSerialPort::EvenParity;
+    ui->actioneven->setChecked(true);
+}
+
+void MainWindow::on_actionodd_triggered()
+{
+    clearCheckedMenu(ui->menuParity);
+    comParity = QSerialPort::OddParity;
+    ui->actionodd->setChecked(true);
+}
+
+void MainWindow::on_actionspace_triggered()
+{
+    clearCheckedMenu(ui->menuParity);
+    comParity = QSerialPort::SpaceParity;
+    ui->actionspace->setChecked(true);
+}
+
+void MainWindow::on_actionmark_triggered()
+{
+    clearCheckedMenu(ui->menuParity);
+    comParity = QSerialPort::MarkParity;
+    ui->actionmark->setChecked(true);
+}
+
+void MainWindow::on_action1_bits_triggered()
+{
+    clearCheckedMenu(ui->menuStop_Bits);
+    comStopBit = QSerialPort::OneStop;
+    ui->action1_bits->setChecked(true);
+}
+
+void MainWindow::on_action1_5_bits_triggered()
+{
+    clearCheckedMenu(ui->menuStop_Bits);
+    comStopBit = QSerialPort::OneAndHalfStop;
+    ui->action1_5_bits->setChecked(true);
+}
+
+void MainWindow::on_action2_bits_triggered()
+{
+    clearCheckedMenu(ui->menuStop_Bits);
+    comStopBit = QSerialPort::TwoStop;
+    ui->action2_bits->setChecked(true);
+}
+
+void MainWindow::on_actionConfiguration_triggered()
+{
+    ui->textEdit_2->append("Actual Configuration:");
+    ui->textEdit_2->append(QString(comBaudRate));
+    ui->textEdit_2->append(QString(comDataBits));
+    ui->textEdit_2->append(QString(comParity));
+    ui->textEdit_2->append(QString(comStopBit));
+}
+
+void MainWindow::on_actionCapteur_triggered()
+{
+
+}
+
+void MainWindow::on_actionSensor_triggered()
+{
+    sensorWindow = new subwindow(this);
+    sensorWindow->show();
+}
