@@ -2,8 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "monitorwindow.h"
 #include "sensorwindow.h"
 #include "enterkeyhandler.h"
+#include "backspaceeater.h"
 
 #include <QList>
 #include <QtSerialPort/QSerialPort>
@@ -113,18 +115,22 @@ private slots:
 
     void on_actionNo_Port_triggered();
 
-    void on_actionTest_triggered();
-
     void on_actionStart_triggered();
 
     void on_actionStop_triggered();
 
+    void on_actionMonitor_triggered();
+
     void on_actionSensor_triggered();
+
+    void on_pushButton_clicked();
 
 private:
     Ui::MainWindow *ui;
+    MonitorWindow *monitorWindow;
     SensorWindow *sensorWindow;
     EnterKeyHandler *enterKey;
+    BackspaceEater *backspaceEater;
     QList<QAction*> actions;
     QSerialPort *serialPort;
 

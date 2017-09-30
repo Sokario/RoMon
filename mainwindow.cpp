@@ -6,14 +6,18 @@
 #include "unistd.h"
 #include "string"
 
-#define TIMEOUT 20
+#define COMM_TIMEOUT 2000
+#define SERIAL_TIMEOUT 20
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    monitorWindow = NULL;
+    sensorWindow = NULL;
     enterKey = new EnterKeyHandler(this);
+    backspaceEater = new BackspaceEater(this);
 
     comBaudRate = QSerialPort::Baud9600;
     comBreakEnable = true;
@@ -31,11 +35,24 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(enterKey, SIGNAL(enterKeyPressed()), this, SLOT(commandHandler()));
     connect(&comTimer, &QTimer::timeout, this, &MainWindow::serialTimeout);
-//    connect(m_serialPort, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MainWindow::handleError);
 
-    ui->textEdit_3->installEventFilter(enterKey);
+    ui->textEdit_2->installEventFilter(backspaceEater);
+    ui->textEdit_2->installEventFilter(enterKey);
+    ui->textEdit_2->append(">>>: ");
+    ui->lineEdit->setReadOnly(true);
+    ui->lineEdit_2->setReadOnly(true);
+    ui->lineEdit_3->setReadOnly(true);
+    ui->lineEdit_4->setReadOnly(true);
+    ui->lineEdit_5->setReadOnly(true);
+    ui->progressBar->setStyleSheet("QProgressBar::chunk{background-color:Red}" "QProgressBar{color:White}");
+    ui->progressBar->setTextVisible(true);
+    ui->progressBar->setAlignment(Qt::AlignCenter);
+    ui->progressBar->setFormat("Disconnected");
+//    ui->pushButton->setStyleSheet("QPushButton{background:Green}" "QPushButton{color:White}");
+    ui->pushButton->setText("Connect");
 
     MainWindow::on_actionRefresh_triggered();
+    MainWindow::on_actionConfiguration_triggered();
 }
 
 MainWindow::~MainWindow()
@@ -45,11 +62,15 @@ MainWindow::~MainWindow()
 
 void MainWindow::commandHandler()
 {
-    QString str = ui->textEdit_3->toPlainText();
-    QStringList command = str.split("\n");
-    ui->textEdit_2->append("Sending data: |" + command.last() + "|");
+    QString str = "\n";
+    str.append(ui->textEdit_2->toPlainText());
+    QStringList command = str.split("\n>>>: ");
     QByteArray serialCommand = command.last().toLatin1();
+
+    ui->textEdit_2->append("HOST: " + command.last());
     serialPort->write(serialCommand);
+    ui->textEdit_2->setReadOnly(true);
+    comTimer.start(COMM_TIMEOUT);
 }
 
 void MainWindow::serialRead()
@@ -57,24 +78,26 @@ void MainWindow::serialRead()
     serialData.append(serialPort->readAll());
 //    ui->textEdit_2->append("Reading data: |" + serialData + "|");
 
-//    if (!comTimer.isActive())
-      comTimer.start(TIMEOUT);
+    comTimer.start(SERIAL_TIMEOUT);
 }
 
 void MainWindow::serialTimeout()
 {
     if (serialData.isEmpty())
-        ui->textEdit_2->append("No data currently available!");
+        ui->textEdit_2->append("TIMEOUT: No data currently available!\n>>>: ");
     else {
-        ui->textEdit_2->append( serialPort->objectName() + ": " + serialData);
+        ui->textEdit_2->append( serialPort->objectName() + ": " + serialData + "\n>>>: ");
         serialData.clear();
     }
+    ui->textEdit_2->setReadOnly(false);
     comTimer.stop();
 }
 
 void MainWindow::errorMessage()
 {
-
+    qDebug("Error: %d", serialPort->error());
+    if (serialPort->error() == QSerialPort::ResourceError)
+        on_actionStop_triggered();
 }
 
 void MainWindow::clearCheckedMenu(QMenu *menu)
@@ -174,6 +197,8 @@ void MainWindow::on_action1200_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud1200;
     ui->action1200->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action2400_triggered()
@@ -181,6 +206,8 @@ void MainWindow::on_action2400_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud2400;
     ui->action2400->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action4800_triggered()
@@ -188,6 +215,8 @@ void MainWindow::on_action4800_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud4800;
     ui->action4800->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action9600_triggered()
@@ -195,6 +224,8 @@ void MainWindow::on_action9600_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud9600;
     ui->action9600->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action19200_triggered()
@@ -202,6 +233,8 @@ void MainWindow::on_action19200_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud19200;
     ui->action19200->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action38400_triggered()
@@ -209,6 +242,8 @@ void MainWindow::on_action38400_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud38400;
     ui->action38400->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action57600_triggered()
@@ -216,6 +251,8 @@ void MainWindow::on_action57600_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud57600;
     ui->action57600->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action115200_triggered()
@@ -223,6 +260,8 @@ void MainWindow::on_action115200_triggered()
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud115200;
     ui->action115200->setChecked(true);
+    ui->textEdit->append(QString(ui->menuBaudrate->title()) + " selected: " + QString::number(comBaudRate));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action5_triggered()
@@ -230,6 +269,8 @@ void MainWindow::on_action5_triggered()
     clearCheckedMenu(ui->menuData_Bits);
     comDataBits = QSerialPort::Data5;
     ui->action5->setChecked(true);
+    ui->textEdit->append(QString(ui->menuData_Bits->title()) + " selected: " + QString::number(comDataBits));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action6_triggered()
@@ -237,6 +278,8 @@ void MainWindow::on_action6_triggered()
     clearCheckedMenu(ui->menuData_Bits);
     comDataBits = QSerialPort::Data6;
     ui->action6->setChecked(true);
+    ui->textEdit->append(QString(ui->menuData_Bits->title()) + " selected: " + QString::number(comDataBits));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action7_triggered()
@@ -244,6 +287,8 @@ void MainWindow::on_action7_triggered()
     clearCheckedMenu(ui->menuData_Bits);
     comDataBits = QSerialPort::Data7;
     ui->action7->setChecked(true);
+    ui->textEdit->append(QString(ui->menuData_Bits->title()) + " selected: " + QString::number(comDataBits));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action8_triggered()
@@ -251,6 +296,8 @@ void MainWindow::on_action8_triggered()
     clearCheckedMenu(ui->menuData_Bits);
     comDataBits = QSerialPort::Data8;
     ui->action8->setChecked(true);
+    ui->textEdit->append(QString(ui->menuData_Bits->title()) + " selected: " + QString::number(comDataBits));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionnone_triggered()
@@ -258,6 +305,8 @@ void MainWindow::on_actionnone_triggered()
     clearCheckedMenu(ui->menuParity);
     comParity = QSerialPort::NoParity;
     ui->actionnone->setChecked(true);
+    ui->textEdit->append(QString(ui->menuParity->title()) + " selected: " + QString::number(comParity));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actioneven_triggered()
@@ -265,6 +314,8 @@ void MainWindow::on_actioneven_triggered()
     clearCheckedMenu(ui->menuParity);
     comParity = QSerialPort::EvenParity;
     ui->actioneven->setChecked(true);
+    ui->textEdit->append(QString(ui->menuParity->title()) + " selected: " + QString::number(comParity));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionodd_triggered()
@@ -272,6 +323,8 @@ void MainWindow::on_actionodd_triggered()
     clearCheckedMenu(ui->menuParity);
     comParity = QSerialPort::OddParity;
     ui->actionodd->setChecked(true);
+    ui->textEdit->append(QString(ui->menuParity->title()) + " selected: " + QString::number(comParity));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionspace_triggered()
@@ -279,6 +332,8 @@ void MainWindow::on_actionspace_triggered()
     clearCheckedMenu(ui->menuParity);
     comParity = QSerialPort::SpaceParity;
     ui->actionspace->setChecked(true);
+    ui->textEdit->append(QString(ui->menuParity->title()) + " selected: " + QString::number(comParity));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionmark_triggered()
@@ -286,6 +341,8 @@ void MainWindow::on_actionmark_triggered()
     clearCheckedMenu(ui->menuParity);
     comParity = QSerialPort::MarkParity;
     ui->actionmark->setChecked(true);
+    ui->textEdit->append(QString(ui->menuParity->title()) + " selected: " + QString::number(comParity));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action1_bits_triggered()
@@ -293,6 +350,8 @@ void MainWindow::on_action1_bits_triggered()
     clearCheckedMenu(ui->menuStop_Bits);
     comStopBit = QSerialPort::OneStop;
     ui->action1_bits->setChecked(true);
+    ui->textEdit->append(QString(ui->menuStop_Bits->title()) + " selected: " + QString::number(comStopBit));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action1_5_bits_triggered()
@@ -300,6 +359,8 @@ void MainWindow::on_action1_5_bits_triggered()
     clearCheckedMenu(ui->menuStop_Bits);
     comStopBit = QSerialPort::OneAndHalfStop;
     ui->action1_5_bits->setChecked(true);
+    ui->textEdit->append(QString(ui->menuStop_Bits->title()) + " selected: " + QString::number(comStopBit));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_action2_bits_triggered()
@@ -307,16 +368,23 @@ void MainWindow::on_action2_bits_triggered()
     clearCheckedMenu(ui->menuStop_Bits);
     comStopBit = QSerialPort::TwoStop;
     ui->action2_bits->setChecked(true);
+    ui->textEdit->append(QString(ui->menuStop_Bits->title()) + " selected: " + QString::number(comStopBit));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionConfiguration_triggered()
 {
-    ui->textEdit_2->append("Actual Configuration --------------------------");
-    ui->textEdit_2->append("-Port Name:\t " + QString(comPortName));
-    ui->textEdit_2->append("-BaudeRate:\t " + QString::number(comBaudRate));
-    ui->textEdit_2->append("-DataBits:\t " + QString::number(comDataBits));
-    ui->textEdit_2->append("-Parity:\t " + QString::number(comParity));
-    ui->textEdit_2->append("-StopBit:\t " + QString::number(comStopBit));
+    ui->lineEdit->clear();
+    ui->lineEdit->setText(QString(comPortName));
+    ui->lineEdit_2->clear();
+    ui->lineEdit_2->setText(QString::number(comBaudRate));
+    ui->lineEdit_3->clear();
+    ui->lineEdit_3->setText(QString::number(comDataBits));
+    ui->lineEdit_4->clear();
+    ui->lineEdit_4->setText(QString::number(comParity));
+    ui->lineEdit_5->clear();
+    ui->lineEdit_5->setText(QString::number(comStopBit));
+    ui->textEdit->append("Serial configuration is up to date");
 }
 
 void MainWindow::on_actionCOM_1_triggered()
@@ -324,8 +392,9 @@ void MainWindow::on_actionCOM_1_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM1";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_1->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_2_triggered()
@@ -333,8 +402,9 @@ void MainWindow::on_actionCOM_2_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM2";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_2->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_3_triggered()
@@ -342,8 +412,9 @@ void MainWindow::on_actionCOM_3_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM3";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_3->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_4_triggered()
@@ -351,8 +422,9 @@ void MainWindow::on_actionCOM_4_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM4";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_4->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_5_triggered()
@@ -360,8 +432,9 @@ void MainWindow::on_actionCOM_5_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM5";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_5->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_6_triggered()
@@ -369,8 +442,9 @@ void MainWindow::on_actionCOM_6_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM6";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_6->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_7_triggered()
@@ -378,8 +452,9 @@ void MainWindow::on_actionCOM_7_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM7";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_7->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_8_triggered()
@@ -387,8 +462,9 @@ void MainWindow::on_actionCOM_8_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM8";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_8->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_9_triggered()
@@ -396,8 +472,9 @@ void MainWindow::on_actionCOM_9_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM9";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_9->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_10_triggered()
@@ -405,8 +482,9 @@ void MainWindow::on_actionCOM_10_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM10";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_10->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_11_triggered()
@@ -414,8 +492,9 @@ void MainWindow::on_actionCOM_11_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM11";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_11->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_12_triggered()
@@ -423,8 +502,9 @@ void MainWindow::on_actionCOM_12_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM12";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_12->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_13_triggered()
@@ -432,8 +512,9 @@ void MainWindow::on_actionCOM_13_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM13";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_13->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_14_triggered()
@@ -441,8 +522,9 @@ void MainWindow::on_actionCOM_14_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM14";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_14->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_15_triggered()
@@ -450,8 +532,9 @@ void MainWindow::on_actionCOM_15_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM15";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_15->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionCOM_16_triggered()
@@ -459,8 +542,9 @@ void MainWindow::on_actionCOM_16_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "COM16";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(true);
     ui->actionCOM_16->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
 
 void MainWindow::on_actionNo_Port_triggered()
@@ -468,28 +552,10 @@ void MainWindow::on_actionNo_Port_triggered()
     clearCheckedMenu(ui->menuPort_Com);
     comPortName = "None";
     comPort = QSerialPortInfo(comPortName);
-    ui->actionTest->setEnabled(false);
     ui->actionNo_Port->setChecked(true);
+    ui->textEdit->append(QString(ui->menuPort_Com->title()) + " selected: " + QString(comPortName));
+    on_actionConfiguration_triggered();
 }
-
-void MainWindow::on_actionTest_triggered()
-{
-    if (comPortName == "None")
-        ui->textEdit->append("No port specified!");
-    else {
-        serialPort = new QSerialPort(comPort);
-        serialPort->setObjectName(comPortName);
-        serialPort->open(QIODevice::ReadWrite);
-
-        ui->textEdit->append("Serial port " + serialPort->objectName() + " opened!");
-        serialPort->waitForReadyRead();
-        serialData = serialPort->readAll();
-        ui->textEdit_2->append("Serial port " + serialPort->objectName() + " data: |" + serialData + "|");
-
-        serialPort->close();
-    }
-}
-
 
 void MainWindow::on_actionStart_triggered()
 {
@@ -500,10 +566,16 @@ void MainWindow::on_actionStart_triggered()
         serialPort->setObjectName(comPortName);
         serialPort->open(QIODevice::ReadWrite);
         connect(serialPort, &QSerialPort::readyRead, this, &MainWindow::serialRead);
+        connect(serialPort, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MainWindow::errorMessage);
 
         ui->textEdit->append("Port " + serialPort->portName() + " Opened!");
-        ui->textEdit_3->setEnabled(true);
-
+        ui->textEdit_2->setEnabled(true);
+        ui->textEdit_2->setFocus();
+        ui->progressBar->setStyleSheet("QProgressBar::chunk{background-color:Green}" "QProgressBar{color:White}");
+        ui->progressBar->setFormat("Connected");
+        ui->pushButton->setText("Disconnect");
+        ui->actionMonitor->setEnabled(true);
+        ui->actionSensor->setEnabled(true);
     }
 }
 
@@ -513,11 +585,42 @@ void MainWindow::on_actionStop_triggered()
         serialPort->close();
         ui->textEdit->append("Port " + serialPort->portName() + " Closed!");
     }
-    ui->textEdit_3->setEnabled(false);
+
+    ui->textEdit_2->setEnabled(false);
+    ui->progressBar->setStyleSheet("QProgressBar::chunk{background-color:Red}" "QProgressBar{color:White}");
+    ui->progressBar->setFormat("Disconnected");
+    ui->pushButton->setText("Connect");
+    ui->actionMonitor->setEnabled(false);
+    ui->actionSensor->setEnabled(false);
+
+    if(monitorWindow)
+        monitorWindow->close();
+    if (sensorWindow)
+        sensorWindow->close();
+}
+
+void MainWindow::on_actionMonitor_triggered()
+{
+    if (!monitorWindow) {
+        monitorWindow = new MonitorWindow();
+        monitorWindow->show();
+    } else
+        monitorWindow->show();
 }
 
 void MainWindow::on_actionSensor_triggered()
 {
-    sensorWindow = new SensorWindow();
-    sensorWindow->show();
+    if (!sensorWindow) {
+        sensorWindow = new SensorWindow();
+        sensorWindow->show();
+    } else
+        sensorWindow->show();
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    if (serialPort->isOpen())
+        on_actionStop_triggered();
+    else
+        on_actionStart_triggered();
 }

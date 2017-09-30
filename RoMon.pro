@@ -29,15 +29,20 @@ SOURCES += \
         mainwindow.cpp \
     quitdialog.cpp \
     sensorwindow.cpp \
-    enterkeyhandler.cpp
+    enterkeyhandler.cpp \
+    backspaceeater.cpp \
+    monitorwindow.cpp
 
 HEADERS += \
         mainwindow.h \
     quitdialog.h \
     sensorwindow.h \
-    enterkeyhandler.h
+    enterkeyhandler.h \
+    backspaceeater.h \
+    monitorwindow.h
 
 FORMS += \
         mainwindow.ui \
     quitdialog.ui \
-    sensorwindow.ui
+    sensorwindow.ui \
+    monitorwindow.ui

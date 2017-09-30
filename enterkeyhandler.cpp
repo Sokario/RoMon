@@ -16,12 +16,15 @@ bool EnterKeyHandler::eventFilter(QObject *obj, QEvent *event)
 //        qDebug("Keyboard pressed!");
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Return) {
-//            qDebug("Enter pressed!");
+//            if (QApplication::keyboardModifiers() == Qt::ShiftModifier)
+//                emit shiftEnterKeyMacro();
+//                qDebug("Modifier pressed!");
             emit enterKeyPressed();
-        }
-        return QObject::eventFilter(obj, event);
+            return QObject::eventFilter(obj, event);
+        } else
+            return QObject::eventFilter(obj, event);
     } else {
-        // standard event processing
+// standard event processing
         return QObject::eventFilter(obj, event);
     }
 }

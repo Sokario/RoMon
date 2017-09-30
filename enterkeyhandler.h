@@ -4,6 +4,7 @@
 #include <QObject>
 #include "QEvent"
 #include "QKeyEvent"
+#include "QApplication"
 
 class EnterKeyHandler : public QObject
 {
