@@ -805,6 +805,9 @@
    <property name="text">
     <string>COM 4</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+'</string>
+   </property>
   </action>
   <action name="actionCOM_5">
    <property name="checkable">

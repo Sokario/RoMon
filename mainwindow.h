@@ -27,6 +27,28 @@ public:
 private slots:
     void commandHandler();
 
+    void commandRun();
+
+    void commandHome();
+
+    void commandUp();
+
+    void commandDoubleUp();
+
+    void commandRight();
+
+    void commandDoubleRight();
+
+    void commandDown();
+
+    void commandDoubleDown();
+
+    void commandLeft();
+
+    void commandDoubleLeft();
+
+    void commandSending(QString command);
+
     void serialRead();
 
     void serialTimeout();

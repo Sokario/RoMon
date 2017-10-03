@@ -46,3 +46,7 @@ FORMS += \
     quitdialog.ui \
     sensorwindow.ui \
     monitorwindow.ui
+
+RESOURCES += \
+    ressource.qrc \
+    ressource.qrc

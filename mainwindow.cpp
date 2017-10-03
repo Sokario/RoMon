@@ -8,14 +8,16 @@
 
 #define COMM_TIMEOUT 2000
 #define SERIAL_TIMEOUT 20
+#define ADD_DISTANCE 10
+#define ADD_ANGLE 1
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    monitorWindow = NULL;
-    sensorWindow = NULL;
+    monitorWindow = new MonitorWindow();
+    sensorWindow = new SensorWindow();
     enterKey = new EnterKeyHandler(this);
     backspaceEater = new BackspaceEater(this);
 
@@ -36,6 +38,21 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(enterKey, SIGNAL(enterKeyPressed()), this, SLOT(commandHandler()));
     connect(&comTimer, &QTimer::timeout, this, &MainWindow::serialTimeout);
 
+    monitorWindow->setAddDistance(ADD_DISTANCE);
+    monitorWindow->setAddDoubleDistance(10 * ADD_DISTANCE);
+    monitorWindow->setAddAngle(ADD_ANGLE);
+    monitorWindow->setAddDoubleAngle(10 * ADD_ANGLE);
+    connect(monitorWindow, SIGNAL(runButton()), this, SLOT(commandRun()));
+    connect(monitorWindow, SIGNAL(up()), this, SLOT(commandUp()));
+    connect(monitorWindow, SIGNAL(home()), this, SLOT(commandHome()));
+    connect(monitorWindow, SIGNAL(doubleUp()), this, SLOT(commandDoubleUp()));
+    connect(monitorWindow, SIGNAL(right()), this, SLOT(commandRight()));
+    connect(monitorWindow, SIGNAL(doubleRight()), this, SLOT(commandDoubleRight()));
+    connect(monitorWindow, SIGNAL(down()), this, SLOT(commandDown()));
+    connect(monitorWindow, SIGNAL(doubleDown()), this, SLOT(commandDoubleDown()));
+    connect(monitorWindow, SIGNAL(left()), this, SLOT(commandLeft()));
+    connect(monitorWindow, SIGNAL(doubleLeft()), this, SLOT(commandDoubleLeft()));
+
     ui->textEdit_2->installEventFilter(backspaceEater);
     ui->textEdit_2->installEventFilter(enterKey);
     ui->textEdit_2->append(">>>: ");
@@ -48,7 +65,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->progressBar->setTextVisible(true);
     ui->progressBar->setAlignment(Qt::AlignCenter);
     ui->progressBar->setFormat("Disconnected");
-//    ui->pushButton->setStyleSheet("QPushButton{background:Green}" "QPushButton{color:White}");
     ui->pushButton->setText("Connect");
 
     MainWindow::on_actionRefresh_triggered();
@@ -65,9 +81,64 @@ void MainWindow::commandHandler()
     QString str = "\n";
     str.append(ui->textEdit_2->toPlainText());
     QStringList command = str.split("\n>>>: ");
-    QByteArray serialCommand = command.last().toLatin1();
 
-    ui->textEdit_2->append("HOST: " + command.last());
+    commandSending(command.last());
+}
+
+void MainWindow::commandRun()
+{
+    commandSending("Distance: " + QString::number(monitorWindow->getConsDistance()) + " | Angle: " + QString::number(monitorWindow->getConsAngle()));
+}
+
+void MainWindow::commandHome()
+{
+    commandSending("Home command!");
+}
+
+void MainWindow::commandUp()
+{
+    commandSending("Distance: " + QString::number(monitorWindow->getAddDistance()));
+}
+
+void MainWindow::commandDoubleUp()
+{
+    commandSending("Distance: " + QString::number(monitorWindow->getAddDoubleDistance()));
+}
+
+void MainWindow::commandRight()
+{
+    commandSending("Angle: " + QString::number(monitorWindow->getAddAngle()));
+}
+
+void MainWindow::commandDoubleRight()
+{
+    commandSending("Agnle: " + QString::number(monitorWindow->getAddDoubleAngle()));
+}
+
+void MainWindow::commandDown()
+{
+    commandSending("Distance: -" + QString::number(monitorWindow->getAddDistance()));
+}
+
+void MainWindow::commandDoubleDown()
+{
+    commandSending("Distance: -" + QString::number(monitorWindow->getAddDoubleDistance()));
+}
+
+void MainWindow::commandLeft()
+{
+    commandSending("Angle: -" + QString::number(monitorWindow->getAddAngle()));
+}
+
+void MainWindow::commandDoubleLeft()
+{
+    commandSending("Agnle: -" + QString::number(monitorWindow->getAddDoubleAngle()));
+}
+
+void MainWindow::commandSending(QString command)
+{
+    QByteArray serialCommand = command.toLatin1();
+    ui->textEdit_2->append("HOST: " + command);
     serialPort->write(serialCommand);
     ui->textEdit_2->setReadOnly(true);
     comTimer.start(COMM_TIMEOUT);
@@ -601,20 +672,12 @@ void MainWindow::on_actionStop_triggered()
 
 void MainWindow::on_actionMonitor_triggered()
 {
-    if (!monitorWindow) {
-        monitorWindow = new MonitorWindow();
-        monitorWindow->show();
-    } else
-        monitorWindow->show();
+    monitorWindow->show();
 }
 
 void MainWindow::on_actionSensor_triggered()
 {
-    if (!sensorWindow) {
-        sensorWindow = new SensorWindow();
-        sensorWindow->show();
-    } else
-        sensorWindow->show();
+    sensorWindow->show();
 }
 
 void MainWindow::on_pushButton_clicked()
