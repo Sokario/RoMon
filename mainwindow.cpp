@@ -11,6 +11,7 @@
 
 #define MIN_CMD_ARG 1
 #define MAX_CMD_ARG 3
+#define MAX_DATA 14
 
 #define ADD_DISTANCE 10
 #define ADD_ANGLE 1
@@ -106,8 +107,7 @@ QString MainWindow::parserHandler(QString command)
     QString verbose, cmd;
 
     QList<QString>::iterator it;
-    for (it = parser.begin(); it != parser.end(); it++)
-    {
+    for (it = parser.begin(); it != parser.end(); it++) {
         if (it->isEmpty())
             parser.erase(it);
         else
@@ -118,19 +118,75 @@ QString MainWindow::parserHandler(QString command)
         return NULL;
 
     if (parser[0].toCaseFolded() == "ok")
-        cmd = "OK0000000000000";
+        if (parser.size() == 1)
+            cmd = "OK0000000000000";
+        else
+            return NULL;
     else if (parser[0].toCaseFolded() == "error")
-        cmd = "ER0000000000000";
+        if (parser.size() == 2)
+            cmd = "ER0000000000000";
+        else
+            return NULL;
     else if (parser[0].toCaseFolded() == "resend")
-        cmd = "RS0000000000000";
-    else if (parser[0].toCaseFolded() == "set")
-        cmd = "SX0000000000000";
-    else if (parser[0].toCaseFolded() == "get")
-        cmd = "GX0000000000000";
-    else if (parser[0].toCaseFolded() == "run")
-        cmd = "RN0000000000000";
+        if (parser.size() == 1)
+            cmd = "RS0000000000000";
+        else
+            return NULL;
+    else if (parser[0].toCaseFolded() == "set") {
+        if (parser.size() == 3) {
+            if (parser[1].toCaseFolded() == "angle")
+                cmd = "SA";
+            else if (parser[1].toCaseFolded() == "distance")
+                cmd = "SD";
+            else
+                return NULL;
+            bool ok;
+            parser[2].toInt(&ok);
+            if ((ok) && (parser[2].size() <= MAX_DATA)) {
+                for (int i = parser[2].size(); i < MAX_DATA; i++) {
+                    cmd.append("0");
+                }
+                cmd.append(parser[2]);
+            } else
+                return NULL;
+        } else
+            return NULL;
+    } else if (parser[0].toCaseFolded() == "get") {
+        if (parser.size() == 2) {
+            if (parser[1].toCaseFolded() == "angle")
+                cmd = "GA00000000000000";
+            else if (parser[1].toCaseFolded() == "distance")
+                cmd = "GD00000000000000";
+            else
+                return NULL;
+        } else
+            return NULL;
+    } else if (parser[0].toCaseFolded() == "run")
+        if (parser.size() == 1)
+            cmd = "RN0000000000000";
+        else if (parser.size() == 3) {
+            if (parser[1].toCaseFolded() == "angle")
+                cmd = "RA";
+            else if (parser[1].toCaseFolded() == "distance")
+                cmd = "RD";
+            else
+                return NULL;
+            bool ok;
+            parser[2].toInt(&ok);
+            if ((ok) && (parser[2].size() <= MAX_DATA)) {
+                for (int i = parser[2].size(); i < MAX_DATA; i++) {
+                    cmd.append("0");
+                }
+                cmd.append(parser[2]);
+            } else
+                return NULL;
+        } else
+            return NULL;
     else if (parser[0].toCaseFolded() == "stop")
-        cmd = "ST0000000000000";
+        if (parser.size() == 1)
+            cmd = "ST0000000000000";
+        else
+            return NULL;
     else
         return NULL;
 
@@ -141,9 +197,9 @@ void MainWindow::commandRun()
 {
     run_cmd = true;
     if (!distance_ack)
-        commandSending(parserHandler("set distance 1234"));
+        commandSending(parserHandler("set distance " + QString::number(monitorWindow->getConsDistance())));
     else if (!angle_ack)
-        commandSending(parserHandler("set angle 1234"));
+        commandSending(parserHandler("set angle " + QString::number(monitorWindow->getConsAngle())));
     else
         commandSending(parserHandler("run"));
 }
@@ -161,42 +217,50 @@ void MainWindow::commandHome()
 
 void MainWindow::commandUp()
 {
-    commandSending("Distance: " + QString::number(monitorWindow->getAddDistance()));
+    QString cmd = parserHandler("run distance " + QString::number(monitorWindow->getAddDistance()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandDoubleUp()
 {
-    commandSending("Distance: " + QString::number(monitorWindow->getAddDoubleDistance()));
+    QString cmd = parserHandler("run distance " + QString::number(monitorWindow->getAddDoubleDistance()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandRight()
 {
-    commandSending("Angle: " + QString::number(monitorWindow->getAddAngle()));
+    QString cmd = parserHandler("run angle " + QString::number(monitorWindow->getAddAngle()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandDoubleRight()
 {
-    commandSending("Agnle: " + QString::number(monitorWindow->getAddDoubleAngle()));
+    QString cmd = parserHandler("run angle " + QString::number(monitorWindow->getAddDoubleAngle()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandDown()
 {
-    commandSending("Distance: -" + QString::number(monitorWindow->getAddDistance()));
+    QString cmd = parserHandler("run distance -" + QString::number(monitorWindow->getAddDistance()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandDoubleDown()
 {
-    commandSending("Distance: -" + QString::number(monitorWindow->getAddDoubleDistance()));
+    QString cmd = parserHandler("run distance -" + QString::number(monitorWindow->getAddDoubleDistance()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandLeft()
 {
-    commandSending("Angle: -" + QString::number(monitorWindow->getAddAngle()));
+    QString cmd = parserHandler("run angle -" + QString::number(monitorWindow->getAddAngle()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandDoubleLeft()
 {
-    commandSending("Agnle: -" + QString::number(monitorWindow->getAddDoubleAngle()));
+    QString cmd = parserHandler("run angle -" + QString::number(monitorWindow->getAddDoubleAngle()));
+    commandSending(cmd);
 }
 
 void MainWindow::commandSending(QString command)
