@@ -31,6 +31,8 @@ public:
 signals:
     void runButton();
 
+    void stopButton();
+
     void home();
 
     void up();
@@ -75,6 +77,8 @@ private slots:
     void on_pushRun_clicked();
 
     void on_checkBox_clicked();
+
+    void on_pushStop_clicked();
 
 private:
     Ui::MonitorWindow *ui;

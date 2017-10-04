@@ -20,7 +20,7 @@ bool EnterKeyHandler::eventFilter(QObject *obj, QEvent *event)
 //                emit shiftEnterKeyMacro();
 //                qDebug("Modifier pressed!");
             emit enterKeyPressed();
-            return QObject::eventFilter(obj, event);
+            return true;
         } else
             return QObject::eventFilter(obj, event);
     } else {

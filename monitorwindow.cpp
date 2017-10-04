@@ -243,3 +243,8 @@ void MonitorWindow::on_checkBox_clicked()
     consAngle = 0;
     lcd_update();
 }
+
+void MonitorWindow::on_pushStop_clicked()
+{
+    emit stopButton();
+}

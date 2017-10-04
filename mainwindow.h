@@ -27,7 +27,11 @@ public:
 private slots:
     void commandHandler();
 
+    QString parserHandler(QString command);
+
     void commandRun();
+
+    void commandStop();
 
     void commandHome();
 
@@ -169,6 +173,10 @@ private:
     QSerialPort::StopBits comStopBit;
     QByteArray serialData;
     QTimer comTimer;
+
+    bool distance_ack;
+    bool angle_ack;
+    bool run_cmd;
 };
 
 #endif // MAINWINDOW_H

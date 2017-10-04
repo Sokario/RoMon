@@ -8,6 +8,10 @@
 
 #define COMM_TIMEOUT 2000
 #define SERIAL_TIMEOUT 20
+
+#define MIN_CMD_ARG 1
+#define MAX_CMD_ARG 3
+
 #define ADD_DISTANCE 10
 #define ADD_ANGLE 1
 
@@ -35,6 +39,9 @@ MainWindow::MainWindow(QWidget *parent) :
     serialData.clear();
     serialPort = new QSerialPort(comPort);
 
+    distance_ack = false;
+    angle_ack = false;
+
     connect(enterKey, SIGNAL(enterKeyPressed()), this, SLOT(commandHandler()));
     connect(&comTimer, &QTimer::timeout, this, &MainWindow::serialTimeout);
 
@@ -43,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent) :
     monitorWindow->setAddAngle(ADD_ANGLE);
     monitorWindow->setAddDoubleAngle(10 * ADD_ANGLE);
     connect(monitorWindow, SIGNAL(runButton()), this, SLOT(commandRun()));
+    connect(monitorWindow, SIGNAL(stopButton()), this, SLOT(commandStop()));
     connect(monitorWindow, SIGNAL(up()), this, SLOT(commandUp()));
     connect(monitorWindow, SIGNAL(home()), this, SLOT(commandHome()));
     connect(monitorWindow, SIGNAL(doubleUp()), this, SLOT(commandDoubleUp()));
@@ -82,12 +90,68 @@ void MainWindow::commandHandler()
     str.append(ui->textEdit_2->toPlainText());
     QStringList command = str.split("\n>>>: ");
 
-    commandSending(command.last());
+    QString cmd = parserHandler(command.last());
+    if (!cmd.isEmpty())
+        commandSending(cmd);
+    else
+        ui->textEdit_2->append("UNKWNON COMMAND: " + command.last() + "\n>>>: ");
+}
+
+QString MainWindow::parserHandler(QString command)
+{
+    /****************************************************
+     * |00|00000000000000| 16 caracters
+    ****************************************************/
+    QStringList parser = command.split(" ");
+    QString verbose, cmd;
+
+    QList<QString>::iterator it;
+    for (it = parser.begin(); it != parser.end(); it++)
+    {
+        if (it->isEmpty())
+            parser.erase(it);
+        else
+            verbose.append(*it + " ");
+    }
+
+    if ((parser.size() < MIN_CMD_ARG) || (parser.size() > MAX_CMD_ARG))
+        return NULL;
+
+    if (parser[0].toCaseFolded() == "ok")
+        cmd = "OK0000000000000";
+    else if (parser[0].toCaseFolded() == "error")
+        cmd = "ER0000000000000";
+    else if (parser[0].toCaseFolded() == "resend")
+        cmd = "RS0000000000000";
+    else if (parser[0].toCaseFolded() == "set")
+        cmd = "SX0000000000000";
+    else if (parser[0].toCaseFolded() == "get")
+        cmd = "GX0000000000000";
+    else if (parser[0].toCaseFolded() == "run")
+        cmd = "RN0000000000000";
+    else if (parser[0].toCaseFolded() == "stop")
+        cmd = "ST0000000000000";
+    else
+        return NULL;
+
+    return cmd;
 }
 
 void MainWindow::commandRun()
 {
-    commandSending("Distance: " + QString::number(monitorWindow->getConsDistance()) + " | Angle: " + QString::number(monitorWindow->getConsAngle()));
+    run_cmd = true;
+    if (!distance_ack)
+        commandSending(parserHandler("set distance 1234"));
+    else if (!angle_ack)
+        commandSending(parserHandler("set angle 1234"));
+    else
+        commandSending(parserHandler("run"));
+}
+
+void MainWindow::commandStop()
+{
+    QString cmd = parserHandler("stop");
+    commandSending(cmd);
 }
 
 void MainWindow::commandHome()
@@ -147,8 +211,6 @@ void MainWindow::commandSending(QString command)
 void MainWindow::serialRead()
 {
     serialData.append(serialPort->readAll());
-//    ui->textEdit_2->append("Reading data: |" + serialData + "|");
-
     comTimer.start(SERIAL_TIMEOUT);
 }
 
@@ -162,6 +224,22 @@ void MainWindow::serialTimeout()
     }
     ui->textEdit_2->setReadOnly(false);
     comTimer.stop();
+
+    if (run_cmd) {
+        if (!distance_ack) {
+            distance_ack = true;
+            emit monitorWindow->runButton();
+        }
+        else if (!angle_ack) {
+            angle_ack = true;
+            emit monitorWindow->runButton();
+        }
+        else {
+            distance_ack = false;
+            angle_ack = false;
+            run_cmd = false;
+        }
+    }
 }
 
 void MainWindow::errorMessage()
