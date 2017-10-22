@@ -9,5 +9,8 @@
         <file>Icon/double_arrow_down.png</file>
         <file>Icon/double_arrow_left.png</file>
         <file>Icon/double_arrow_up.png</file>
+        <file>Icon/lock.png</file>
+        <file>Icon/unlock.png</file>
+        <file>Icon/Evo.png</file>
     </qresource>
 </RCC>

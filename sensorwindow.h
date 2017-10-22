@@ -15,8 +15,15 @@ public:
     explicit SensorWindow(QWidget *parent = 0);
     ~SensorWindow();
 
+private slots:
+    void on_pushButton_clicked();
+
 private:
     Ui::SensorWindow *ui;
+
+    bool locked;
+    QIcon lock;
+    QIcon unlock;
 };
 
 #endif // SENSORWINDOW_H

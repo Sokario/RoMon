@@ -177,6 +177,7 @@ private:
     bool distance_ack;
     bool angle_ack;
     bool run_cmd;
+    bool sending;
 };
 
 #endif // MAINWINDOW_H

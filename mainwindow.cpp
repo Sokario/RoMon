@@ -21,6 +21,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setWindowIcon(QIcon(":/Icon/Icon/Evo.png"));
+
     monitorWindow = new MonitorWindow();
     sensorWindow = new SensorWindow();
     enterKey = new EnterKeyHandler(this);
@@ -42,6 +44,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     distance_ack = false;
     angle_ack = false;
+    run_cmd = false;
+    sending = false;
 
     connect(enterKey, SIGNAL(enterKeyPressed()), this, SLOT(commandHandler()));
     connect(&comTimer, &QTimer::timeout, this, &MainWindow::serialTimeout);
@@ -103,6 +107,9 @@ QString MainWindow::parserHandler(QString command)
     /****************************************************
      * |00|00000000000000| 16 caracters
     ****************************************************/
+    sending = true;
+    monitorWindow->cmd_acquisition(false);
+
     QStringList parser = command.split(" ");
     QString verbose, cmd;
 
@@ -119,17 +126,17 @@ QString MainWindow::parserHandler(QString command)
 
     if (parser[0].toCaseFolded() == "ok")
         if (parser.size() == 1)
-            cmd = "OK0000000000000";
+            cmd = "OK00000000000000";
         else
             return NULL;
     else if (parser[0].toCaseFolded() == "error")
         if (parser.size() == 2)
-            cmd = "ER0000000000000";
+            cmd = "ER00000000000000";
         else
             return NULL;
     else if (parser[0].toCaseFolded() == "resend")
         if (parser.size() == 1)
-            cmd = "RS0000000000000";
+            cmd = "RS00000000000000";
         else
             return NULL;
     else if (parser[0].toCaseFolded() == "set") {
@@ -163,7 +170,7 @@ QString MainWindow::parserHandler(QString command)
             return NULL;
     } else if (parser[0].toCaseFolded() == "run")
         if (parser.size() == 1)
-            cmd = "RN0000000000000";
+            cmd = "RN00000000000000";
         else if (parser.size() == 3) {
             if (parser[1].toCaseFolded() == "angle")
                 cmd = "RA";
@@ -184,7 +191,12 @@ QString MainWindow::parserHandler(QString command)
             return NULL;
     else if (parser[0].toCaseFolded() == "stop")
         if (parser.size() == 1)
-            cmd = "ST0000000000000";
+            cmd = "ST00000000000000";
+        else
+            return NULL;
+    else if (parser[0].toCaseFolded() == "quit")
+        if (parser.size() == 1)
+            cmd = "QT00000000000000";
         else
             return NULL;
     else
@@ -302,7 +314,12 @@ void MainWindow::serialTimeout()
             distance_ack = false;
             angle_ack = false;
             run_cmd = false;
+            sending = false;
+            monitorWindow->cmd_acquisition(true);
         }
+    } else {
+        sending = false;
+        monitorWindow->cmd_acquisition(true);
     }
 }
 

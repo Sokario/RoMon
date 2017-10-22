@@ -6,6 +6,8 @@ MonitorWindow::MonitorWindow(QWidget *parent) :
     ui(new Ui::MonitorWindow)
 {
     ui->setupUi(this);
+    setWindowIcon(QIcon(":/Icon/Icon/Evo.png"));
+
     consDistance = 0;
     consAngle = 0;
     posDistance = 0;
@@ -126,6 +128,20 @@ int MonitorWindow::getConsDistance()
 int MonitorWindow::getConsAngle()
 {
     return consAngle;
+}
+
+void MonitorWindow::cmd_acquisition(bool value)
+{
+    ui->pushButton->setEnabled(value);
+    ui->pushButton_2->setEnabled(value);
+    ui->pushButton_3->setEnabled(value);
+    ui->pushButton_4->setEnabled(value);
+    ui->pushButton_5->setEnabled(value);
+    ui->pushButton_6->setEnabled(value);
+    ui->pushButton_7->setEnabled(value);
+    ui->pushButton_8->setEnabled(value);
+    ui->pushButton_9->setEnabled(value);
+    ui->pushRun->setEnabled(value);
 }
 
 void MonitorWindow::quit()

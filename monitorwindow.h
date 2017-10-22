@@ -28,6 +28,8 @@ public:
     int getConsDistance();
     int getConsAngle();
 
+    void cmd_acquisition(bool value);
+
 signals:
     void runButton();
 
