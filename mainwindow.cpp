@@ -81,7 +81,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton->setText("Connect");
 
     MainWindow::on_actionRefresh_triggered();
-    MainWindow::on_actionConfiguration_triggered();
 }
 
 MainWindow::~MainWindow()
@@ -362,40 +361,74 @@ void MainWindow::on_actionRefresh_triggered()
 
     for(int i = 0; i < port_com.size(); i++) {
         ui->textEdit->append("-" + port_com[i].portName());
-        if (port_com[i].portName() == "COM1")
+        if (port_com[i].portName() == "COM1"){
+            if (i == 0)
+                MainWindow::on_actionCOM_1_triggered();
             ui->actionCOM_1->setEnabled(true);
-        else if (port_com[i].portName() == "COM2")
+        }else if (port_com[i].portName() == "COM2"){
+            if (i == 0)
+                MainWindow::on_actionCOM_2_triggered();
             ui->actionCOM_2->setEnabled(true);
-        else if (port_com[i].portName() == "COM3")
+        }else if (port_com[i].portName() == "COM3"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_3_triggered();
             ui->actionCOM_3->setEnabled(true);
-        else if (port_com[i].portName() == "COM4")
+        }else if (port_com[i].portName() == "COM4"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_4_triggered();
             ui->actionCOM_4->setEnabled(true);
-        else if (port_com[i].portName() == "COM5")
+        }else if (port_com[i].portName() == "COM5"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_5_triggered();
             ui->actionCOM_5->setEnabled(true);
-        else if (port_com[i].portName() == "COM6")
+        }else if (port_com[i].portName() == "COM6"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_6_triggered();
             ui->actionCOM_6->setEnabled(true);
-        else if (port_com[i].portName() == "COM7")
+        }else if (port_com[i].portName() == "COM7"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_7_triggered();
             ui->actionCOM_7->setEnabled(true);
-        else if (port_com[i].portName() == "COM8")
+        }else if (port_com[i].portName() == "COM8"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_8_triggered();
             ui->actionCOM_8->setEnabled(true);
-        else if (port_com[i].portName() == "COM9")
+        }else if (port_com[i].portName() == "COM9"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_9_triggered();
             ui->actionCOM_9->setEnabled(true);
-        else if (port_com[i].portName() == "COM10")
+        }else if (port_com[i].portName() == "COM10"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_10_triggered();
             ui->actionCOM_10->setEnabled(true);
-        else if (port_com[i].portName() == "COM11")
+        }else if (port_com[i].portName() == "COM11"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_11_triggered();
             ui->actionCOM_11->setEnabled(true);
-        else if (port_com[i].portName() == "COM12")
+        }else if (port_com[i].portName() == "COM12"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_12_triggered();
             ui->actionCOM_12->setEnabled(true);
-        else if (port_com[i].portName() == "COM13")
+        }else if (port_com[i].portName() == "COM13"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_13_triggered();
             ui->actionCOM_13->setEnabled(true);
-        else if (port_com[i].portName() == "COM14")
+        }else if (port_com[i].portName() == "COM14"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_14_triggered();
             ui->actionCOM_14->setEnabled(true);
-        else if (port_com[i].portName() == "COM15")
+        }else if (port_com[i].portName() == "COM15"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_15_triggered();
             ui->actionCOM_15->setEnabled(true);
-        else if (port_com[i].portName() == "COM16")
+        }else if (port_com[i].portName() == "COM16"){
+                if (i == 0)
+                    MainWindow::on_actionCOM_16_triggered();
             ui->actionCOM_16->setEnabled(true);
-        else
+        }else{
             ui->textEdit->append("No communication port detected!");
+            MainWindow::on_actionConfiguration_triggered();
+        }
     }
 
 /*    QAction *action = new QAction("NO PORT");
@@ -423,7 +456,6 @@ void MainWindow::on_actionRefresh_triggered()
 
 void MainWindow::on_action1200_triggered()
 {
-    ui->menuBaudrate->setActiveAction(ui->action1200);
     clearCheckedMenu(ui->menuBaudrate);
     comBaudRate = QSerialPort::Baud1200;
     ui->action1200->setChecked(true);
@@ -794,7 +826,14 @@ void MainWindow::on_actionStart_triggered()
     else {
         serialPort = new QSerialPort(comPort);
         serialPort->setObjectName(comPortName);
+        serialPort->setBaudRate(comBaudRate);
+        serialPort->setBreakEnabled(comBreakEnable);
+        serialPort->setDataBits(comDataBits);
+        serialPort->setDataTerminalReady(comDataTermReady);
+        serialPort->setFlowControl(comFlowControl);
+        serialPort->setParity(comParity);
         serialPort->open(QIODevice::ReadWrite);
+
         connect(serialPort, &QSerialPort::readyRead, this, &MainWindow::serialRead);
         connect(serialPort, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MainWindow::errorMessage);
 

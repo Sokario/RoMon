@@ -164,8 +164,8 @@ private:
     bool comBreakEnable;
     QSerialPort::DataBits comDataBits;
     bool comDataTermReady;
-    bool comFlowControl;
-    bool comParity;
+    QSerialPort::FlowControl comFlowControl;
+    QSerialPort::Parity comParity;
     QString comPortName;
     QSerialPortInfo comPort;
     qint64 comReadBufferSize;
