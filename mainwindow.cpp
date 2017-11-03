@@ -827,9 +827,7 @@ void MainWindow::on_actionStart_triggered()
         serialPort = new QSerialPort(comPort);
         serialPort->setObjectName(comPortName);
         serialPort->setBaudRate(comBaudRate);
-        serialPort->setBreakEnabled(comBreakEnable);
         serialPort->setDataBits(comDataBits);
-        serialPort->setDataTerminalReady(comDataTermReady);
         serialPort->setFlowControl(comFlowControl);
         serialPort->setParity(comParity);
         serialPort->open(QIODevice::ReadWrite);
