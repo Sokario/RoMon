@@ -207,22 +207,27 @@ QString MainWindow::parserSendHandler(QString command)
         } else
             return NULL;
     } else if (parser[0].toCaseFolded() == "run") {
-        if (parser.size() == 1) {
+        if ((parser.size() >= 1) && (parser.size() <= 3)) {
             cmdHEX |= (1 << 4); // CMD TYPE
             cmdHEX |= ((1 << 3) | (1 << 2)); // CMD RUN
-        } else if (parser.size() == 3) {
-            if (parser[1].toCaseFolded() == "angle")
-                cmdHEX |= (1 << 0); // RUN type ANGLE
-            else if (parser[1].toCaseFolded() == "distance")
-                cmdHEX |= (1 << 1); // RUN type DISTANCE
-            else
-                return NULL;
-            bool ok;
-            parser[2].toInt(&ok);
-            if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
-                dataHEX = parser[2].toInt();
+            if (parser.size() >= 2) {
+                if (parser[1].toCaseFolded() == "angle")
+                    cmdHEX |= (1 << 0); // RUN type ANGLE
+                else if (parser[1].toCaseFolded() == "distance")
+                    cmdHEX |= (1 << 1); // RUN type DISTANCE
+                else
+                    return NULL;
+                if (parser.size() == 3) {
+                    bool ok;
+                    parser[2].toInt(&ok);
+                    if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                        dataHEX = parser[2].toInt();
+                    } else
+                        return NULL;
+                } else
+                    dataHEX = 0;
             } else
-                return NULL;
+                dataHEX = 0;
         } else
             return NULL;
     } else if (parser[0].toCaseFolded() == "stop") {
