@@ -11,7 +11,7 @@
 
 #define MIN_CMD_ARG 1
 #define MAX_CMD_ARG 3
-#define MAX_DATA 14
+#define MAX_DATA 16777216
 
 #define ADD_DISTANCE 10
 #define ADD_ANGLE 1
@@ -94,23 +94,75 @@ void MainWindow::commandHandler()
     str.append(ui->textEdit_2->toPlainText());
     QStringList command = str.split("\n>>>: ");
 
-    QString cmd = parserHandler(command.last());
+    QString cmd = parserSendHandler(command.last());
     if (!cmd.isEmpty())
         commandSending(cmd);
     else
         ui->textEdit_2->append("UNKWNON COMMAND: " + command.last() + "\n>>>: ");
 }
 
-QString MainWindow::parserHandler(QString command)
+QString MainWindow::parserSendHandler(QString command)
 {
     /****************************************************
-     * |00|00000000000000| 16 caracters
+     * | XX | XX XX XX | 8 Hexa caracters
+     * |CMD type| Data | 8 Hexa caracters
+     *
+     * CMD type : 1 HEX
+     * 0000: -      ->      |       |       |
+     * 0001: CMD    -> SET  | GET   | RUN   | STOP
+     * 0010: INFO   -> CAPT | DIST  | ANGLE | RUNNING
+     * 0011: ACK    -> OK   | END   | ERROR | RESEND
+     * 0100: +1     ->      |       |       |
+     * 0101: +1     ->      |       |       |
+     * 0110: +1     ->      |       |       |
+     * 0111: +1     ->      |       |       |
+     * 1000: +1     ->      |       |       |
+     * 1001: +1     ->      |       |       |
+     * 1010: +1     ->      |       |       |
+     * 1011: +1     ->      |       |       |
+     * 1100: +1     ->      |       |       |
+     * 1101: +1     ->      |       |       |
+     * 1110: +1     ->      |       |       |
+     * 1111: QUIT   ->      |       |       |
+     * -------------------------------------------------
+     * CMD type : 2 HEX (1 HEX = CMD)
+     * 00|XX: STOP
+     * 01|01: SET Angle
+     * 01|10: SET Distance
+     * 10|01: GET Angle
+     * 10|10: GET Distance
+     * 11|00: RUN ALL
+     * 11|01: RUN ANGLE
+     * 11|10: RUN DISTANCE
+     * 11|11: RUN -
+     *
+     * CMD type : 2 HEX (1 HEX = INFO)
+     * 00|XX: RUNNING
+     * 01|01: POS 1: ANGLE
+     * 01|10: POS 1: X
+     * 10|01: POS 2: Distance
+     * 10|10: POS 2: Y
+     * 11|00: CAPT ToR
+     * 11|01: CAPT GP2
+     * 11|10: CAPT -
+     * 11|11: CAPT Color
+     *
+     * CMD type : 2 HEX (1 HEX = ACK)
+     * 00|00: ERROR unknow
+     * 00|01: ERROR cmd type
+     * 00|10: ERROR data
+     * 00|11: ERROR -
+     * 01|XX: RESEND
+     * 10|XX: OK    -> | XX : CMD type 2 HEX (1 HEX = CMD)
+     * 11|XX: END   -> | XX : CMD type 2 HEX (1 HEX = CMD)
+     *
     ****************************************************/
     sending = true;
     monitorWindow->cmd_acquisition(false);
 
     QStringList parser = command.split(" ");
     QString verbose, cmd;
+    int cmdHEX = 0, dataHEX = 0;
 
     QList<QString>::iterator it;
     for (it = parser.begin(); it != parser.end(); it++) {
@@ -123,83 +175,126 @@ QString MainWindow::parserHandler(QString command)
     if ((parser.size() < MIN_CMD_ARG) || (parser.size() > MAX_CMD_ARG))
         return NULL;
 
-    if (parser[0].toCaseFolded() == "ok")
-        if (parser.size() == 1)
-            cmd = "OK00000000000000";
-        else
-            return NULL;
-    else if (parser[0].toCaseFolded() == "error")
-        if (parser.size() == 2)
-            cmd = "ER00000000000000";
-        else
-            return NULL;
-    else if (parser[0].toCaseFolded() == "resend")
-        if (parser.size() == 1)
-            cmd = "RS00000000000000";
-        else
-            return NULL;
-    else if (parser[0].toCaseFolded() == "set") {
+    // CMD Type: CMD
+    if (parser[0].toCaseFolded() == "set") {
         if (parser.size() == 3) {
+            cmdHEX |= (1 << 4); // CMD TYPE
+            cmdHEX |= (1 << 2); // CMD SET
             if (parser[1].toCaseFolded() == "angle")
-                cmd = "SA";
+                cmdHEX |= (1 << 0); // SET type ANGLE
             else if (parser[1].toCaseFolded() == "distance")
-                cmd = "SD";
+                cmdHEX |= (1 << 1); // SET type DISTANCE
             else
                 return NULL;
             bool ok;
             parser[2].toInt(&ok);
-            if ((ok) && (parser[2].size() <= MAX_DATA)) {
-                for (int i = parser[2].size(); i < MAX_DATA; i++) {
-                    cmd.append("0");
-                }
-                cmd.append(parser[2]);
+            if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                dataHEX = parser[2].toInt();
             } else
                 return NULL;
         } else
             return NULL;
     } else if (parser[0].toCaseFolded() == "get") {
         if (parser.size() == 2) {
+            cmdHEX |= (1 << 4); // CMD TYPE
+            cmdHEX |= (1 << 3); // CMD GET
             if (parser[1].toCaseFolded() == "angle")
-                cmd = "GA00000000000000";
+                cmdHEX |= (1 << 0); // GET type ANGLE
             else if (parser[1].toCaseFolded() == "distance")
-                cmd = "GD00000000000000";
+                cmdHEX |= (1 << 1); // GET type DISTANCE
             else
                 return NULL;
         } else
             return NULL;
-    } else if (parser[0].toCaseFolded() == "run")
-        if (parser.size() == 1)
-            cmd = "RN00000000000000";
-        else if (parser.size() == 3) {
+    } else if (parser[0].toCaseFolded() == "run") {
+        if (parser.size() == 1) {
+            cmdHEX |= (1 << 4); // CMD TYPE
+            cmdHEX |= ((1 << 3) | (1 << 2)); // CMD RUN
+        } else if (parser.size() == 3) {
             if (parser[1].toCaseFolded() == "angle")
-                cmd = "RA";
+                cmdHEX |= (1 << 0); // RUN type ANGLE
             else if (parser[1].toCaseFolded() == "distance")
-                cmd = "RD";
+                cmdHEX |= (1 << 1); // RUN type DISTANCE
             else
                 return NULL;
             bool ok;
             parser[2].toInt(&ok);
-            if ((ok) && (parser[2].size() <= MAX_DATA)) {
-                for (int i = parser[2].size(); i < MAX_DATA; i++) {
-                    cmd.append("0");
-                }
-                cmd.append(parser[2]);
+            if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                dataHEX = parser[2].toInt();
             } else
                 return NULL;
         } else
             return NULL;
-    else if (parser[0].toCaseFolded() == "stop")
+    } else if (parser[0].toCaseFolded() == "stop") {
         if (parser.size() == 1)
-            cmd = "ST00000000000000";
+            cmdHEX |= (1 << 4); // CMD TYPE
         else
             return NULL;
-    else if (parser[0].toCaseFolded() == "quit")
-        if (parser.size() == 1)
-            cmd = "QT00000000000000";
-        else
+    // CMD Type: ACK
+    } else if (parser[0].toCaseFolded() == "error") {
+        if (parser.size() == 2) {
+            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
+            cmdHEX |= (1 << 3); // ERROR
+            if (parser[1].toCaseFolded() == "unknow")
+                cmdHEX |= (0 << 0); // ERROR type UNKNOW
+            else if (parser[1].toCaseFolded() == "command")
+                cmdHEX |= (1 << 0); // ERROR type CMD
+            else if (parser[1].toCaseFolded() == "data")
+                cmdHEX |= (1 << 1); // ERROR type DATA
+            else
+                return NULL;
+        } else
             return NULL;
-    else
+    } else if (parser[0].toCaseFolded() == "resend") {
+        if (parser.size() == 1) {
+            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
+            cmdHEX |= (1 << 1); // RESEND
+        } else
+            return NULL;
+    } else if (parser[0].toCaseFolded() == "ok") {
+        if (parser.size() == 2) {
+            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
+            cmdHEX |= (1 << 3); // OK
+            if (parser[1].toCaseFolded() == "stop")
+                cmdHEX |= (0 << 0); // OK type STOP
+            else if (parser[1].toCaseFolded() == "set")
+                cmdHEX |= (1 << 0); // OK type SET
+            else if (parser[1].toCaseFolded() == "get")
+                cmdHEX |= (1 << 1); // OK type GET
+            else if (parser[1].toCaseFolded() == "run")
+                cmdHEX |= ((1 << 1) | (1 << 0)); // OK type RUN
+            else
+                return NULL;
+        } else
+            return NULL;
+    } else if (parser[0].toCaseFolded() == "end") {
+        if (parser.size() == 2) {
+            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
+            cmdHEX |= ((1 << 3) | (1 << 2)); // ENDED
+            if (parser[1].toCaseFolded() == "stop")
+                cmdHEX |= (0 << 0); // OK type STOP
+            else if (parser[1].toCaseFolded() == "set")
+                cmdHEX |= (1 << 0); // OK type SET
+            else if (parser[1].toCaseFolded() == "get")
+                cmdHEX |= (1 << 1); // OK type GET
+            else if (parser[1].toCaseFolded() == "run")
+                cmdHEX |= ((1 << 1) | (1 << 0)); // OK type RUN
+            else
+                return NULL;
+        } else
+            return NULL;
+    } else if (parser[0].toCaseFolded() == "quit") {
+        if (parser.size() == 1) {
+            cmdHEX = 0xFF; // QUIT
+            dataHEX = 0x000000;
+        } else
+            return NULL;
+    } else
         return NULL;
+
+    char str[8];
+    itoa((cmdHEX << 24) | (dataHEX), str, 16);
+    cmd.append(str);
 
     return cmd;
 }
@@ -208,16 +303,16 @@ void MainWindow::commandRun()
 {
     run_cmd = true;
     if (!distance_ack)
-        commandSending(parserHandler("set distance " + QString::number(monitorWindow->getConsDistance())));
+        commandSending(parserSendHandler("set distance " + QString::number(monitorWindow->getConsDistance())));
     else if (!angle_ack)
-        commandSending(parserHandler("set angle " + QString::number(monitorWindow->getConsAngle())));
+        commandSending(parserSendHandler("set angle " + QString::number(monitorWindow->getConsAngle())));
     else
-        commandSending(parserHandler("run"));
+        commandSending(parserSendHandler("run"));
 }
 
 void MainWindow::commandStop()
 {
-    QString cmd = parserHandler("stop");
+    QString cmd = parserSendHandler("stop");
     commandSending(cmd);
 }
 
@@ -228,49 +323,49 @@ void MainWindow::commandHome()
 
 void MainWindow::commandUp()
 {
-    QString cmd = parserHandler("run distance " + QString::number(monitorWindow->getAddDistance()));
+    QString cmd = parserSendHandler("run distance " + QString::number(monitorWindow->getAddDistance()));
     commandSending(cmd);
 }
 
 void MainWindow::commandDoubleUp()
 {
-    QString cmd = parserHandler("run distance " + QString::number(monitorWindow->getAddDoubleDistance()));
+    QString cmd = parserSendHandler("run distance " + QString::number(monitorWindow->getAddDoubleDistance()));
     commandSending(cmd);
 }
 
 void MainWindow::commandRight()
 {
-    QString cmd = parserHandler("run angle " + QString::number(monitorWindow->getAddAngle()));
+    QString cmd = parserSendHandler("run angle " + QString::number(monitorWindow->getAddAngle()));
     commandSending(cmd);
 }
 
 void MainWindow::commandDoubleRight()
 {
-    QString cmd = parserHandler("run angle " + QString::number(monitorWindow->getAddDoubleAngle()));
+    QString cmd = parserSendHandler("run angle " + QString::number(monitorWindow->getAddDoubleAngle()));
     commandSending(cmd);
 }
 
 void MainWindow::commandDown()
 {
-    QString cmd = parserHandler("run distance -" + QString::number(monitorWindow->getAddDistance()));
+    QString cmd = parserSendHandler("run distance -" + QString::number(monitorWindow->getAddDistance()));
     commandSending(cmd);
 }
 
 void MainWindow::commandDoubleDown()
 {
-    QString cmd = parserHandler("run distance -" + QString::number(monitorWindow->getAddDoubleDistance()));
+    QString cmd = parserSendHandler("run distance -" + QString::number(monitorWindow->getAddDoubleDistance()));
     commandSending(cmd);
 }
 
 void MainWindow::commandLeft()
 {
-    QString cmd = parserHandler("run angle -" + QString::number(monitorWindow->getAddAngle()));
+    QString cmd = parserSendHandler("run angle -" + QString::number(monitorWindow->getAddAngle()));
     commandSending(cmd);
 }
 
 void MainWindow::commandDoubleLeft()
 {
-    QString cmd = parserHandler("run angle -" + QString::number(monitorWindow->getAddDoubleAngle()));
+    QString cmd = parserSendHandler("run angle -" + QString::number(monitorWindow->getAddDoubleAngle()));
     commandSending(cmd);
 }
 

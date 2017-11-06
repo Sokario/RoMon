@@ -27,7 +27,7 @@ public:
 private slots:
     void commandHandler();
 
-    QString parserHandler(QString command);
+    QString parserSendHandler(QString command);
 
     void commandRun();
 
