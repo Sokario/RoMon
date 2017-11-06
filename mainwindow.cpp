@@ -108,53 +108,83 @@ QString MainWindow::parserSendHandler(QString command)
      * |CMD type| Data | 8 Hexa caracters
      *
      * CMD type : 1 HEX
-     * 0000: -      ->      |       |       |
-     * 0001: CMD    -> SET  | GET   | RUN   | STOP
-     * 0010: INFO   -> CAPT | DIST  | ANGLE | RUNNING
-     * 0011: ACK    -> OK   | END   | ERROR | RESEND
-     * 0100: +1     ->      |       |       |
-     * 0101: +1     ->      |       |       |
-     * 0110: +1     ->      |       |       |
-     * 0111: +1     ->      |       |       |
-     * 1000: +1     ->      |       |       |
-     * 1001: +1     ->      |       |       |
-     * 1010: +1     ->      |       |       |
-     * 1011: +1     ->      |       |       |
-     * 1100: +1     ->      |       |       |
-     * 1101: +1     ->      |       |       |
-     * 1110: +1     ->      |       |       |
-     * 1111: QUIT   ->      |       |       |
      * -------------------------------------------------
-     * CMD type : 2 HEX (1 HEX = CMD)
-     * 00|XX: STOP
-     * 01|01: SET Angle
-     * 01|10: SET Distance
-     * 10|01: GET Angle
-     * 10|10: GET Distance
-     * 11|00: RUN ALL
-     * 11|01: RUN ANGLE
-     * 11|10: RUN DISTANCE
-     * 11|11: RUN -
+     * 0000: X      -> 0    | 0     | 0     | 0
+     * ----: CMD ASSERV
+     * 0001: STOP   -> 0    | 0     | 0     | 0
+     * 0010: SET    -> ANG  | DIST  | X     | Y
+     * 0011: GET    -> ANG  | DIST  | X     | Y
+     * 0100: RUN    -> ANG  | DIST  | XY    | BASIC
+     * ----: CMD VARIABLE
+     * 0101: QUADR  -> SET  | GET   | INIT  | CONFIG
+     * 0110: PID    -> SET  | GET   | INIT  | CONFIG
+     * 0111: CONV   -> SET  | GET   | INIT  | CONFIG
+     * 1000: VAR    -> SET  | GET   | INIT  | CONFIG
+     * ----: CMD RESPONSE
+     * 1001: RESP   -> OK   | DONE  | ERROR | RUNNING
+     * ----: CMD OTHER
+     * 1010: CAPT   -> GP2  | ToR   | COLOR | -
+     * 1011: STATE  -> -    | -     | -     | -
+     * 1100: STATE  -> -    | -     | -     | -
+     * 1101: STATE  -> -    | -     | -     | -
+     * 1110: STATE  -> -    | -     | -     | -
+     * 1111: QUIT   -> 0    | 0     | 0     | 0
+     * -------------------------------------------------
+     * CMD type : 2 HEX (1 HEX = SET)
+     * 00|01: SET angle
+     * 00|10: SET distance
+     * 00|11: SET x
+     * 01|00: SET y
      *
-     * CMD type : 2 HEX (1 HEX = INFO)
-     * 00|XX: RUNNING
-     * 01|01: POS 1: ANGLE
-     * 01|10: POS 1: X
-     * 10|01: POS 2: Distance
-     * 10|10: POS 2: Y
-     * 11|00: CAPT ToR
-     * 11|01: CAPT GP2
-     * 11|10: CAPT -
-     * 11|11: CAPT Color
+     * CMD type : 2 HEX (1 HEX = GET)
+     * 00|01: GET angle
+     * 00|10: GET distance
+     * 00|11: GET x
+     * 01|00: GET y
      *
-     * CMD type : 2 HEX (1 HEX = ACK)
-     * 00|00: ERROR unknow
-     * 00|01: ERROR cmd type
-     * 00|10: ERROR data
-     * 00|11: ERROR -
-     * 01|XX: RESEND
-     * 10|XX: OK    -> | XX : CMD type 2 HEX (1 HEX = CMD)
-     * 11|XX: END   -> | XX : CMD type 2 HEX (1 HEX = CMD)
+     * CMD type : 2 HEX (1 HEX = RUN)
+     * 00|01: RUN angle
+     * 00|10: RUN distance
+     * 00|11: RUN x
+     * 01|00: RUN y
+     * 01|01: RUN all
+     *
+     * CMD type : 2 HEX (1 HEX = QUADR)
+     * 00|01: QUADR init
+     * 00|10: QUADR config
+     * 00|11: QUADR set A
+     * 01|00: QUADR set B
+     * 01|01: QUADR set C
+     * 01|10: QUADR get A
+     * 01|11: QUADR get B
+     * 10|00: QUADR get C
+     *
+     * CMD type : 2 HEX (1 HEX = PID)
+     * 00|01: PID init
+     * 00|10: PID config
+     * 00|11: PID set Kp
+     * 01|00: PID set Ki
+     * 01|01: PID set Kd
+     * 01|10: PID get Kp
+     * 01|11: PID get Ki
+     * 10|00: PID get Kd
+     *
+     * CMD type : 2 HEX (1 HEX = CONV/VAR)
+     * 00|01: CONV/VAR init
+     * 00|10: CONV/VAR config
+     * 00|11: CONV/VAR set A
+     * 01|00: CONV/VAR get A
+     *
+     * CMD type : 2 HEX (1 HEX = RESP)
+     * 00|01: RESP ok
+     * 00|10: RESP done
+     * 00|11: RESP error
+     * 01|00: RESP running
+     *
+     * CMD type : 2 HEX (1 HEX = CAPT)
+     * 00|01: CAPT GP2
+     * 00|10: CAPT ToR
+     * 00|11: CAPT color
      *
     ****************************************************/
     sending = true;
@@ -175,15 +205,25 @@ QString MainWindow::parserSendHandler(QString command)
     if ((parser.size() < MIN_CMD_ARG) || (parser.size() > MAX_CMD_ARG))
         return NULL;
 
-    // CMD Type: CMD
-    if (parser[0].toCaseFolded() == "set") {
+    // CMD Type: STOP
+    if (parser[0].toCaseFolded() == "stop") {
+        if (parser.size() == 1) {
+            cmdHEX = (0b0001 << 4); // STOP TYPE
+            dataHEX = 0;
+        } else
+            return NULL;
+    // CMD Type: SET
+    } else if (parser[0].toCaseFolded() == "set") {
         if (parser.size() == 3) {
-            cmdHEX |= (1 << 4); // CMD TYPE
-            cmdHEX |= (1 << 2); // CMD SET
+            cmdHEX = (0b0010 << 4); // SET TYPE
             if (parser[1].toCaseFolded() == "angle")
-                cmdHEX |= (1 << 0); // SET type ANGLE
+                cmdHEX |= 0b0001; // SET angle
             else if (parser[1].toCaseFolded() == "distance")
-                cmdHEX |= (1 << 1); // SET type DISTANCE
+                cmdHEX |= 0b0010; // SET distance
+            else if (parser[1].toCaseFolded() == "x")
+                cmdHEX |= 0b0011; // SET x
+            else if (parser[1].toCaseFolded() == "y")
+                cmdHEX |= 0b0100; // SET y
             else
                 return NULL;
             bool ok;
@@ -194,27 +234,35 @@ QString MainWindow::parserSendHandler(QString command)
                 return NULL;
         } else
             return NULL;
+    // CMD Type: GET
     } else if (parser[0].toCaseFolded() == "get") {
         if (parser.size() == 2) {
-            cmdHEX |= (1 << 4); // CMD TYPE
-            cmdHEX |= (1 << 3); // CMD GET
+            cmdHEX = (0b0011 << 4); // GET TYPE
             if (parser[1].toCaseFolded() == "angle")
-                cmdHEX |= (1 << 0); // GET type ANGLE
+                cmdHEX |= 0b0001; // GET angle
             else if (parser[1].toCaseFolded() == "distance")
-                cmdHEX |= (1 << 1); // GET type DISTANCE
+                cmdHEX |= 0b0010; // GET distance
+            else if (parser[1].toCaseFolded() == "x")
+                cmdHEX |= 0b0011; // GET x
+            else if (parser[1].toCaseFolded() == "y")
+                cmdHEX |= 0b0100; // GET y
             else
                 return NULL;
         } else
             return NULL;
+    // CMD Type: RUN
     } else if (parser[0].toCaseFolded() == "run") {
         if ((parser.size() >= 1) && (parser.size() <= 3)) {
-            cmdHEX |= (1 << 4); // CMD TYPE
-            cmdHEX |= ((1 << 3) | (1 << 2)); // CMD RUN
+            cmdHEX = (0b0100 << 4); // RUN TYPE
             if (parser.size() >= 2) {
                 if (parser[1].toCaseFolded() == "angle")
-                    cmdHEX |= (1 << 0); // RUN type ANGLE
+                    cmdHEX |= 0b0001; // RUN angle
                 else if (parser[1].toCaseFolded() == "distance")
-                    cmdHEX |= (1 << 1); // RUN type DISTANCE
+                    cmdHEX |= 0b0010; // RUN distance
+                else if (parser[1].toCaseFolded() == "x")
+                    cmdHEX |= 0b0011; // RUN x
+                else if (parser[1].toCaseFolded() == "y")
+                    cmdHEX |= 0b0100; // RUN y
                 else
                     return NULL;
                 if (parser.size() == 3) {
@@ -226,72 +274,89 @@ QString MainWindow::parserSendHandler(QString command)
                         return NULL;
                 } else
                     dataHEX = 0;
+            } else {
+                cmdHEX |= 0b0101;
+                dataHEX = 0;
+            }
+        } else
+            return NULL;
+    // CMD Type: QUADR
+    } else if (parser[0].toCaseFolded() == "quadramp") {
+        if (parser.size() == 1) {
+            cmdHEX = (0b0101 << 4); // QUADR TYPE
+            dataHEX = 0;
+        } else
+            return NULL;
+    // CMD Type: PID
+    } else if (parser[0].toCaseFolded() == "pid") {
+        if (parser.size() == 1) {
+            cmdHEX = (0b0110 << 4); // PID TYPE
+            dataHEX = 0;
+        } else
+            return NULL;
+    // CMD Type: CONV
+    } else if (parser[0].toCaseFolded() == "conversion") {
+        if (parser.size() == 1) {
+            cmdHEX = (0b0111 << 4); // CONV TYPE
+            dataHEX = 0;
+        } else
+            return NULL;
+    // CMD Type: VAR
+    } else if (parser[0].toCaseFolded() == "variable") {
+        if (parser.size() == 1) {
+            cmdHEX = (0b1000 << 4); // VAR TYPE
+            dataHEX = 0;
+        } else
+            return NULL;
+    // CMD Type: RESP
+    } else if (parser[0].toCaseFolded() == "response") {
+        if ((parser.size() >= 2) && (parser.size() <= 3)) {
+            cmdHEX = (0b1001 << 4); // RESP TYPE
+            if (parser[1].toCaseFolded() == "ok")
+                cmdHEX |= 0b0001; // RESP ok
+            else if (parser[1].toCaseFolded() == "done")
+                cmdHEX |= 0b0010; // RESP done
+            else if (parser[1].toCaseFolded() == "error")
+                cmdHEX |= 0b0011; // RESP error
+            else if (parser[1].toCaseFolded() == "running")
+                cmdHEX |= 0b0100; // RESP running
+            else
+                return NULL;
+            if (parser.size() == 3) {
+                bool ok;
+                parser[2].toInt(&ok);
+                if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                    dataHEX = parser[2].toInt();
+                } else
+                    return NULL;
             } else
                 dataHEX = 0;
         } else
             return NULL;
-    } else if (parser[0].toCaseFolded() == "stop") {
-        if (parser.size() == 1)
-            cmdHEX |= (1 << 4); // CMD TYPE
-        else
-            return NULL;
-    // CMD Type: ACK
-    } else if (parser[0].toCaseFolded() == "error") {
-        if (parser.size() == 2) {
-            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
-            cmdHEX |= (1 << 3); // ERROR
-            if (parser[1].toCaseFolded() == "unknow")
-                cmdHEX |= (0 << 0); // ERROR type UNKNOW
-            else if (parser[1].toCaseFolded() == "command")
-                cmdHEX |= (1 << 0); // ERROR type CMD
-            else if (parser[1].toCaseFolded() == "data")
-                cmdHEX |= (1 << 1); // ERROR type DATA
+    // CMD Type: CAPT
+    } else if (parser[0].toCaseFolded() == "captor") {
+        if (parser.size() == 3) {
+            cmdHEX = (0b1010 << 4); // CAPT TYPE
+            if (parser[1].toCaseFolded() == "gp2")
+                cmdHEX |= 0b0001; // CAPT GP2
+            else if (parser[1].toCaseFolded() == "tor")
+                cmdHEX |= 0b0010; // CAPT ToR
+            else if (parser[1].toCaseFolded() == "color")
+                cmdHEX |= 0b0011; // CAPT COLOR
             else
                 return NULL;
-        } else
-            return NULL;
-    } else if (parser[0].toCaseFolded() == "resend") {
-        if (parser.size() == 1) {
-            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
-            cmdHEX |= (1 << 1); // RESEND
-        } else
-            return NULL;
-    } else if (parser[0].toCaseFolded() == "ok") {
-        if (parser.size() == 2) {
-            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
-            cmdHEX |= (1 << 3); // OK
-            if (parser[1].toCaseFolded() == "stop")
-                cmdHEX |= (0 << 0); // OK type STOP
-            else if (parser[1].toCaseFolded() == "set")
-                cmdHEX |= (1 << 0); // OK type SET
-            else if (parser[1].toCaseFolded() == "get")
-                cmdHEX |= (1 << 1); // OK type GET
-            else if (parser[1].toCaseFolded() == "run")
-                cmdHEX |= ((1 << 1) | (1 << 0)); // OK type RUN
-            else
-                return NULL;
-        } else
-            return NULL;
-    } else if (parser[0].toCaseFolded() == "end") {
-        if (parser.size() == 2) {
-            cmdHEX |= ((1 << 5) | (1 << 4)); // ACK TYPE
-            cmdHEX |= ((1 << 3) | (1 << 2)); // ENDED
-            if (parser[1].toCaseFolded() == "stop")
-                cmdHEX |= (0 << 0); // OK type STOP
-            else if (parser[1].toCaseFolded() == "set")
-                cmdHEX |= (1 << 0); // OK type SET
-            else if (parser[1].toCaseFolded() == "get")
-                cmdHEX |= (1 << 1); // OK type GET
-            else if (parser[1].toCaseFolded() == "run")
-                cmdHEX |= ((1 << 1) | (1 << 0)); // OK type RUN
-            else
+            bool ok;
+            parser[2].toInt(&ok);
+            if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                dataHEX = parser[2].toInt();
+            } else
                 return NULL;
         } else
             return NULL;
     } else if (parser[0].toCaseFolded() == "quit") {
         if (parser.size() == 1) {
-            cmdHEX = 0xFF; // QUIT
-            dataHEX = 0x000000;
+            cmdHEX = (0b1111 << 4); // QUIT
+            dataHEX = 0;
         } else
             return NULL;
     } else
