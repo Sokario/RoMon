@@ -289,9 +289,42 @@ QString MainWindow::parserSendHandler(QString command)
             return NULL;
     // CMD Type: PID
     } else if (parser[0].toCaseFolded() == "pid") {
-        if (parser.size() == 1) {
+        if ((parser.size() >= 1) && (parser.size() <= 4)) {
             cmdHEX = (0b0110 << 4); // PID TYPE
             dataHEX = 0;
+            if (parser.size() >= 2) {
+                if (parser[1].toCaseFolded() == "init")
+                    cmdHEX |= 0b0001; // PID init
+                else if (parser[1].toCaseFolded() == "config")
+                    cmdHEX |= 0b0010; // PID config
+                else if ((parser[1].toCaseFolded() == "set") && (parser.size() == 4)) {
+                    if (parser[2].tocaseFolded() == "kp")
+                        cmdHEX |= 0b0011; // PID set KP
+                    else if (parser[2].tocaseFolded() == "ki")
+                        cmdHEX |= 0b0011; // PID set KI
+                    else if (parser[2].tocaseFolded() == "kd")
+                        cmdHEX |= 0b0011; // PID set KD
+                    else
+                        return NULL;
+                    bool ok;
+                    parser[2].toInt(&ok);
+                    if ((ok) && (parser[3].toInt() <= MAX_DATA)) {
+                        dataHEX = parser[3].toInt();
+                    } else
+                        return NULL;
+                } else if ((parser[1].toCaseFolded() == "get") && (parser.size() == 3)) {
+                    if (parser[2].tocaseFolded() == "kp")
+                        cmdHEX |= 0b0011; // PID get KP
+                    else if (parser[2].tocaseFolded() == "ki")
+                        cmdHEX |= 0b0011; // PID get KI
+                    else if (parser[2].tocaseFolded() == "kd")
+                        cmdHEX |= 0b0011; // PID get KD
+                    else
+                        return NULL;
+                } else
+                    return NULL;
+            } else
+                return NULL;
         } else
             return NULL;
     // CMD Type: CONV
@@ -310,7 +343,7 @@ QString MainWindow::parserSendHandler(QString command)
             return NULL;
     // CMD Type: RESP
     } else if (parser[0].toCaseFolded() == "response") {
-        if ((parser.size() >= 2) && (parser.size() <= 3)) {
+        if (parser.size() == 3) {
             cmdHEX = (0b1001 << 4); // RESP TYPE
             if (parser[1].toCaseFolded() == "ok")
                 cmdHEX |= 0b0001; // RESP ok
@@ -322,15 +355,12 @@ QString MainWindow::parserSendHandler(QString command)
                 cmdHEX |= 0b0100; // RESP running
             else
                 return NULL;
-            if (parser.size() == 3) {
-                bool ok;
-                parser[2].toInt(&ok);
-                if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
-                    dataHEX = parser[2].toInt();
-                } else
-                    return NULL;
+            bool ok;
+            parser[2].toInt(&ok);
+            if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                dataHEX = parser[2].toInt();
             } else
-                dataHEX = 0;
+                return NULL;
         } else
             return NULL;
     // CMD Type: CAPT
