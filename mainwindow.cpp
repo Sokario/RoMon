@@ -10,7 +10,7 @@
 #define SERIAL_TIMEOUT 20
 
 #define MIN_CMD_ARG 1
-#define MAX_CMD_ARG 3
+#define MAX_CMD_ARG 4
 #define MAX_DATA 16777216
 
 #define ADD_DISTANCE 10
@@ -298,27 +298,27 @@ QString MainWindow::parserSendHandler(QString command)
                 else if (parser[1].toCaseFolded() == "config")
                     cmdHEX |= 0b0010; // PID config
                 else if ((parser[1].toCaseFolded() == "set") && (parser.size() == 4)) {
-                    if (parser[2].tocaseFolded() == "kp")
+                    if (parser[2].toCaseFolded() == "kp")
                         cmdHEX |= 0b0011; // PID set KP
-                    else if (parser[2].tocaseFolded() == "ki")
-                        cmdHEX |= 0b0011; // PID set KI
-                    else if (parser[2].tocaseFolded() == "kd")
-                        cmdHEX |= 0b0011; // PID set KD
+                    else if (parser[2].toCaseFolded() == "ki")
+                        cmdHEX |= 0b0100; // PID set KI
+                    else if (parser[2].toCaseFolded() == "kd")
+                        cmdHEX |= 0b0101; // PID set KD
                     else
                         return NULL;
                     bool ok;
-                    parser[2].toInt(&ok);
+                    parser[3].toInt(&ok);
                     if ((ok) && (parser[3].toInt() <= MAX_DATA)) {
                         dataHEX = parser[3].toInt();
                     } else
                         return NULL;
                 } else if ((parser[1].toCaseFolded() == "get") && (parser.size() == 3)) {
-                    if (parser[2].tocaseFolded() == "kp")
-                        cmdHEX |= 0b0011; // PID get KP
-                    else if (parser[2].tocaseFolded() == "ki")
-                        cmdHEX |= 0b0011; // PID get KI
-                    else if (parser[2].tocaseFolded() == "kd")
-                        cmdHEX |= 0b0011; // PID get KD
+                    if (parser[2].toCaseFolded() == "kp")
+                        cmdHEX |= 0b0110; // PID get KP
+                    else if (parser[2].toCaseFolded() == "ki")
+                        cmdHEX |= 0b0111; // PID get KI
+                    else if (parser[2].toCaseFolded() == "kd")
+                        cmdHEX |= 0b1000; // PID get KD
                     else
                         return NULL;
                 } else
