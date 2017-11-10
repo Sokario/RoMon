@@ -387,7 +387,7 @@ QString MainWindow::parserSendHandler(QString command)
                 return NULL;
         } else
             return NULL;
-    // CMD Type: CAPT
+    // CMD Type: IRQ
     } else if (parser[0].toCaseFolded() == "interrupt") {
         if (parser.size() == 2) {
             cmdHEX = (0b1011 << 4); // IRQ TYPE
