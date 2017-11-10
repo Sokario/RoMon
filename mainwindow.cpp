@@ -391,7 +391,7 @@ QString MainWindow::parserSendHandler(QString command)
     } else if (parser[0].toCaseFolded() == "interrupt") {
         if (parser.size() == 2) {
             cmdHEX = (0b1011 << 4); // IRQ TYPE
-            if (parser[1].toCaseFolded() == "gp2")
+            if (parser[1].toCaseFolded() == "gpio")
                 cmdHEX |= 0b0001; // IRQ GP2
             else if (parser[1].toCaseFolded() == "adc")
                 cmdHEX |= 0b0010; // IRQ ADC
