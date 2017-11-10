@@ -124,7 +124,7 @@ QString MainWindow::parserSendHandler(QString command)
      * 1001: RESP   -> OK   | DONE  | ERROR | RUNNING
      * ----: CMD OTHER
      * 1010: CAPT   -> GP2  | ToR   | COLOR | -
-     * 1011: STATE  -> -    | -     | -     | -
+     * 1011: IRQ    -> GPIO | ADC   | -     | -
      * 1100: STATE  -> -    | -     | -     | -
      * 1101: STATE  -> -    | -     | -     | -
      * 1110: STATE  -> -    | -     | -     | -
@@ -185,6 +185,10 @@ QString MainWindow::parserSendHandler(QString command)
      * 00|01: CAPT GP2
      * 00|10: CAPT ToR
      * 00|11: CAPT color
+     *
+     * CMD type : 2 HEX (1 HEX = IRQ)
+     * 00|01: IRQ GPIO
+     * 00|10: IRQ ADC
      *
     ****************************************************/
     sending = true;
@@ -380,6 +384,18 @@ QString MainWindow::parserSendHandler(QString command)
             if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
                 dataHEX = parser[2].toInt();
             } else
+                return NULL;
+        } else
+            return NULL;
+    // CMD Type: CAPT
+    } else if (parser[0].toCaseFolded() == "interrupt") {
+        if (parser.size() == 2) {
+            cmdHEX = (0b1011 << 4); // IRQ TYPE
+            if (parser[1].toCaseFolded() == "gp2")
+                cmdHEX |= 0b0001; // IRQ GP2
+            else if (parser[1].toCaseFolded() == "adc")
+                cmdHEX |= 0b0010; // IRQ ADC
+            else
                 return NULL;
         } else
             return NULL;
