@@ -409,7 +409,7 @@ QString MainWindow::parserSendHandler(QString command)
         return NULL;
 
     char str[8];
-    itoa((cmdHEX << 24) | (dataHEX), str, 16);
+    itoa((cmdHEX << 24) | (dataHEX & 0x00FFFFFF), str, 16);
     cmd.append(str);
 
     return cmd;
