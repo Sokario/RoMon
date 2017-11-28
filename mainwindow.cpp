@@ -389,13 +389,19 @@ QString MainWindow::parserSendHandler(QString command)
             return NULL;
     // CMD Type: IRQ
     } else if (parser[0].toCaseFolded() == "interrupt") {
-        if (parser.size() == 2) {
+        if (parser.size() == 3) {
             cmdHEX = (0b1011 << 4); // IRQ TYPE
             if (parser[1].toCaseFolded() == "gpio")
                 cmdHEX |= 0b0001; // IRQ GP2
             else if (parser[1].toCaseFolded() == "adc")
                 cmdHEX |= 0b0010; // IRQ ADC
             else
+                return NULL;
+            bool ok;
+            parser[2].toInt(&ok);
+            if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                dataHEX = parser[2].toInt();
+            } else
                 return NULL;
         } else
             return NULL;
