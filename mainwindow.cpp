@@ -124,8 +124,8 @@ QString MainWindow::parserSendHandler(QString command)
      * 1001: RESP   -> OK   | DONE  | ERROR | RUNNING
      * ----: CMD OTHER
      * 1010: CAPT   -> GP2  | ToR   | COLOR | -
-     * 1011: IRQ    -> GPIO | ADC   | -     | -
-     * 1100: STATE  -> -    | -     | -     | -
+     * 1011: IRQ    -> GPIO | ADC   | STEP  | -
+     * 1100: STEP   -> SET  | GET   | STOP  | -
      * 1101: STATE  -> -    | -     | -     | -
      * 1110: STATE  -> -    | -     | -     | -
      * 1111: QUIT   -> 0    | 0     | 0     | 0
@@ -189,6 +189,7 @@ QString MainWindow::parserSendHandler(QString command)
      * CMD type : 2 HEX (1 HEX = IRQ)
      * 00|01: IRQ GPIO
      * 00|10: IRQ ADC
+     * 00|11: IRQ STEPPER
      *
     ****************************************************/
     sending = true;
@@ -395,12 +396,40 @@ QString MainWindow::parserSendHandler(QString command)
                 cmdHEX |= 0b0001; // IRQ GP2
             else if (parser[1].toCaseFolded() == "adc")
                 cmdHEX |= 0b0010; // IRQ ADC
+            else if (parser[1].toCaseFolded() == "stepper")
+                cmdHEX |= 0b0011; // IRQ STEPPER
             else
                 return NULL;
             bool ok;
             parser[2].toInt(&ok);
             if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
                 dataHEX = parser[2].toInt();
+            } else
+                return NULL;
+        } else
+            return NULL;
+    // CMD Type: STEPPER
+    } else if (parser[0].toCaseFolded() == "stepper") {
+        if (parser.size() >= 2) {
+            cmdHEX = (0b1100 << 4); // STEP TYPE
+            if (parser.size() == 3) {
+                if (parser[1].toCaseFolded() == "set")
+                    cmdHEX |= 0b0001; // STEP SET
+                else if (parser[1].toCaseFolded() == "get")
+                    cmdHEX |= 0b0010; // STEP GET
+                else
+                    return NULL;
+                bool ok;
+                parser[2].toInt(&ok);
+                if ((ok) && (parser[2].toInt() <= MAX_DATA)) {
+                    dataHEX = parser[2].toInt();
+                } else
+                    return NULL;
+            } else if (parser.size() == 2) {
+                if (parser[1].toCaseFolded() == "stop")
+                    cmdHEX |= 0b0011; // STEP STOP
+                else
+                    return NULL;
             } else
                 return NULL;
         } else
